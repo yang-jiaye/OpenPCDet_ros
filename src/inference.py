@@ -93,6 +93,8 @@ def rslidar_callback(msg):
     print(frame)
     msg_cloud = ros_numpy.point_cloud2.pointcloud2_to_array(msg)
     np_p = get_xyz_points(msg_cloud, True)
+    
+    # inference here
     scores, dt_box_lidar, types, pred_dict = proc_1.run(np_p, frame)
     for i, score in enumerate(scores):
         if score>threshold:
@@ -180,7 +182,7 @@ class Processor_ROS:
         self.logger = common_utils.create_logger()
         self.demo_dataset = DemoDataset(
             dataset_cfg=cfg.DATA_CONFIG, class_names=cfg.CLASS_NAMES, training=False,
-            root_path=Path("/home/kin/workspace/OpenPCDet/tools/000002.bin"),
+            root_path=Path("/root/workspace/OpenPCDet/tools/000007.bin"),
             ext='.bin')
         
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -224,6 +226,8 @@ class Processor_ROS:
         msg = xyz_array_to_pointcloud2(self.points)
         self.pub_pts.publish(msg)
         self.points[:,0] += move_lidar_center
+        self.points[:,2] += 4.5
+        self.points[:,3] = self.points[:,3] / 255.0
 
         input_dict = {
             'points': self.points,
@@ -237,6 +241,7 @@ class Processor_ROS:
         torch.cuda.synchronize()
         t = time.time()
 
+        # inference here
         pred_dicts, _ = self.net.forward(data_dict)
         
         torch.cuda.synchronize()
