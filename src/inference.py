@@ -60,7 +60,7 @@ inference_time_list = []
 
 
 # not used
-def xyz_array_to_pointcloud2(points_sum, stamp=None, frame_id=None):
+def xyz_array_to_pointcloud2(points_sum, stamp=None, frame_id="livox_frame"):
     """
     Create a sensor_msgs.PointCloud2 from an array of points.
     """
@@ -74,11 +74,11 @@ def xyz_array_to_pointcloud2(points_sum, stamp=None, frame_id=None):
     msg.fields = [
         PointField('x', 0, PointField.FLOAT32, 1),
         PointField('y', 4, PointField.FLOAT32, 1),
-        PointField('z', 8, PointField.FLOAT32, 1)
-        # PointField('i', 12, PointField.FLOAT32, 1)
+        PointField('z', 8, PointField.FLOAT32, 1),
+        PointField('intensity', 12, PointField.FLOAT32, 1)
         ]
     msg.is_bigendian = False
-    msg.point_step = 12
+    msg.point_step = 16
     msg.row_step = points_sum.shape[0]
     msg.is_dense = int(np.isfinite(points_sum).all())
     msg.data = np.asarray(points_sum, np.float32).tostring()
@@ -92,6 +92,7 @@ def rslidar_callback(msg):
         proc_1.no_frame_id = False
 
     frame = msg.header.seq # frame id -> not timestamp
+    print(frame)
     msg_cloud = ros_numpy.point_cloud2.pointcloud2_to_array(msg)
     np_p = get_xyz_points(msg_cloud, True)
     
@@ -111,6 +112,10 @@ def rslidar_callback(msg):
         for i in range(len(pred_dict['name'])):
             print_str += f"Type: {pred_dict['name'][i]:.3s} Prob: {scores[i]:.2f}\n"
         print(print_str)
+        # with open("/root/workspace/results.txt", "a") as file:
+        #     for i in range(len(select_types)):
+        #         dt_box_str = ' '.join(str(x) for x in dt_box_lidar[i])
+        #         file.write(f"{frame} {select_types[i]} " + dt_box_str + '\n')
     else:
         print(f"\n{bc.FAIL} No confident prediction in this time stamp {bc.ENDC}\n")
     print(f" -------------------------------------------------------------- ")
@@ -166,6 +171,7 @@ class Processor_ROS:
         self.pub_rviz = None
         self.no_frame_id = True
         self.rate = RATE_VIZ
+        self.pub_pts = rospy.Publisher("rotated_points", PointCloud2, queue_size=10)
 
     def set_pub_rviz(self, box3d_pub, marker_frame_id = 'velodyne'):
         self.pub_rviz = Draw3DBox(box3d_pub, marker_frame_id, self.rate)
@@ -211,6 +217,20 @@ class Processor_ROS:
         timestamps[:] = frame
 
         # self.points = np.append(self.points, timestamps, axis=1)
+        self.points[:,2] += 5.2 # the lidar in about 6m height
+        self.points[:,3] /= 255.0
+
+        def roty(t):
+            """ Rotation about the y-axis. """
+            c = np.cos(t)
+            s = np.sin(t)
+            return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
+        
+        r = roty(np.deg2rad(-3))
+
+        self.points[:,0:3] = self.points[:,0:3] @ r
+        msg = xyz_array_to_pointcloud2(self.points)
+        self.pub_pts.publish(msg)
         self.points[:,0] += move_lidar_center
         self.points[:,2] += height_addtion
         self.points[:,3] = self.points[:,3] / 255.0
@@ -236,6 +256,7 @@ class Processor_ROS:
         mean_inference_time = sum(inference_time_list)/len(inference_time_list)
 
         boxes_lidar = pred_dicts[0]["pred_boxes"].detach().cpu().numpy()
+        # boxes_lidar[:,2] -= 4 # the lidar in about 6m height
         scores = pred_dicts[0]["pred_scores"].detach().cpu().numpy()
         types = pred_dicts[0]["pred_labels"].detach().cpu().numpy()
 
