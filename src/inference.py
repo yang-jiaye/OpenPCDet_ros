@@ -52,12 +52,14 @@ with open(f"{BASE_DIR}/launch/config.yaml", 'r') as f:
 cfg_root = para_cfg["cfg_root"]
 model_path = para_cfg["model_path"]
 move_lidar_center = para_cfg["move_lidar_center"]
+height_addtion = para_cfg["height_addtion"]
 threshold = para_cfg["threshold"]
 pointcloud_topic = para_cfg["pointcloud_topic"]
 RATE_VIZ = para_cfg["viz_rate"]
 inference_time_list = []
 
 
+# not used
 def xyz_array_to_pointcloud2(points_sum, stamp=None, frame_id=None):
     """
     Create a sensor_msgs.PointCloud2 from an array of points.
@@ -95,10 +97,14 @@ def rslidar_callback(msg):
     
     # inference here
     scores, dt_box_lidar, types, pred_dict = proc_1.run(np_p, frame)
+
+    # select confident predictions
     for i, score in enumerate(scores):
         if score>threshold:
             select_boxs.append(dt_box_lidar[i])
             select_types.append(pred_dict['name'][i])
+
+    # publish 3d box
     if(len(select_boxs)>0):
         proc_1.pub_rviz.publish_3dbox(np.array(select_boxs), -1, pred_dict['name'])
         print_str = f"Frame id: {frame}. Prediction results: \n"
@@ -176,7 +182,7 @@ class Processor_ROS:
         self.logger = common_utils.create_logger()
         self.demo_dataset = DemoDataset(
             dataset_cfg=cfg.DATA_CONFIG, class_names=cfg.CLASS_NAMES, training=False,
-            root_path=Path("/root/workspace/OpenPCDet/tools/000007.bin"),
+            root_path=Path("/home/ackerman/Workspace/Archive/OpenPCDet/tools/000008.bin"),
             ext='.bin')
         
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -206,7 +212,7 @@ class Processor_ROS:
 
         # self.points = np.append(self.points, timestamps, axis=1)
         self.points[:,0] += move_lidar_center
-        self.points[:,2] += 4.5
+        self.points[:,2] += height_addtion
         self.points[:,3] = self.points[:,3] / 255.0
 
         input_dict = {
