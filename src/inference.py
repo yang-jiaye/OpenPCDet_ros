@@ -57,7 +57,7 @@ threshold = para_cfg["threshold"]
 pointcloud_topic = para_cfg["pointcloud_topic"]
 RATE_VIZ = para_cfg["viz_rate"]
 inference_time_list = []
-
+result_path = para_cfg["result_path"]
 
 # not used
 def xyz_array_to_pointcloud2(points_sum, stamp=None, frame_id="livox_frame"):
@@ -107,15 +107,15 @@ def rslidar_callback(msg):
 
     # publish 3d box
     if(len(select_boxs)>0):
-        proc_1.pub_rviz.publish_3dbox(np.array(select_boxs), -1, pred_dict['name'])
+        proc_1.pub_rviz.publish_3dbox(np.array(select_boxs), -1, pred_dict['name'], height_addition=height_addtion, move_lidar_center=move_lidar_center)
         print_str = f"Frame id: {frame}. Prediction results: \n"
         for i in range(len(pred_dict['name'])):
             print_str += f"Type: {pred_dict['name'][i]:.3s} Prob: {scores[i]:.2f}\n"
         print(print_str)
-        # with open("/root/workspace/results.txt", "a") as file:
-        #     for i in range(len(select_types)):
-        #         dt_box_str = ' '.join(str(x) for x in dt_box_lidar[i])
-        #         file.write(f"{frame} {select_types[i]} " + dt_box_str + '\n')
+        with open(result_path, "a") as file:
+            for i in range(len(select_types)):
+                dt_box_str = ' '.join(str(x) for x in dt_box_lidar[i])
+                file.write(f"{frame} {select_types[i]} " + dt_box_str + '\n')
     else:
         print(f"\n{bc.FAIL} No confident prediction in this time stamp {bc.ENDC}\n")
     print(f" -------------------------------------------------------------- ")
@@ -216,21 +216,18 @@ class Processor_ROS:
         timestamps = np.empty((len(self.points),1))
         timestamps[:] = frame
 
-        # self.points = np.append(self.points, timestamps, axis=1)
-        self.points[:,2] += 5.2 # the lidar in about 6m height
-        self.points[:,3] /= 255.0
-
-        def roty(t):
-            """ Rotation about the y-axis. """
-            c = np.cos(t)
-            s = np.sin(t)
-            return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
+        # def roty(t):
+        #     """ Rotation about the y-axis. """
+        #     c = np.cos(t)
+        #     s = np.sin(t)
+        #     return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
         
-        r = roty(np.deg2rad(-3))
+        # r = roty(np.deg2rad(0))
 
-        self.points[:,0:3] = self.points[:,0:3] @ r
-        msg = xyz_array_to_pointcloud2(self.points)
-        self.pub_pts.publish(msg)
+        # self.points[:,0:3] = self.points[:,0:3] @ r
+        # msg = xyz_array_to_pointcloud2(self.points)
+        # self.pub_pts.publish(msg)
+        
         self.points[:,0] += move_lidar_center
         self.points[:,2] += height_addtion
         self.points[:,3] = self.points[:,3] / 255.0

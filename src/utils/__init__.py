@@ -74,7 +74,7 @@ def remove_low_score_nu(image_anno, thresh):
 
     return img_filtered_annotations
 
-def get_xyz_points(cloud_array, remove_nans=True, dtype=np.float):
+def get_xyz_points(cloud_array, remove_nans=True, dtype=float):
     """
     """
     if remove_nans:

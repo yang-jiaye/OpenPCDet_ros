@@ -1,8 +1,11 @@
 # which go to the model you want to use
-cfg_root: "/home/ackerman/Workspace/Archive/OpenPCDet/tools/cfgs/kitti_models/pv_rcnn.yaml"
+cfg_root: "/home/ackerman/Workspace/OpenPCDet/tools/cfgs/kitti_models/pv_rcnn.yaml"
 
 # which go to the .pth
-model_path: "/home/ackerman/Workspace/Archive/OpenPCDet/tools/pv_rcnn_8369.pth"
+model_path: "/home/ackerman/Workspace/OpenPCDet/tools/pv_rcnn_8369.pth"
+
+# result path
+result_path: "/home/ackerman/Workspace/RSUDataProcess-2.0/results.txt"
 
 # pointcloud_topic in the bag if you are not sure
 # rosbag info xxx.bag check the topic name
@@ -11,6 +14,8 @@ pointcloud_topic: "/livox/lidar" # default is from kitti2bag: /velodyne_points
 # only the predict probablity over this threshold will be draw a box
 threshold: 0.8
 
-move_lidar_center: 20
-height_addtion: 1.0
+# move the lidar center to the front of the car
+# if the lidar is in the center of the car, set it to 0
+move_lidar_center: 0
+height_addtion: 0
 viz_rate: 1.0
