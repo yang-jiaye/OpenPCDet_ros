@@ -51,7 +51,8 @@ with open(f"{BASE_DIR}/launch/config.yaml", 'r') as f:
 
 cfg_root = para_cfg["cfg_root"]
 model_path = para_cfg["model_path"]
-move_lidar_center = para_cfg["move_lidar_center"]
+move_lidar_center_x = para_cfg["move_lidar_center_x"]
+move_lidar_center_y = para_cfg["move_lidar_center_y"]
 height_addtion = para_cfg["height_addtion"]
 threshold = para_cfg["threshold"]
 pointcloud_topic = para_cfg["pointcloud_topic"]
@@ -107,7 +108,7 @@ def rslidar_callback(msg):
 
     # publish 3d box
     if(len(select_boxs)>0):
-        proc_1.pub_rviz.publish_3dbox(np.array(select_boxs), -1, pred_dict['name'], height_addition=height_addtion, move_lidar_center=move_lidar_center)
+        proc_1.pub_rviz.publish_3dbox(np.array(select_boxs), -1, pred_dict['name'], height_addition=height_addtion, move_lidar_center_x=move_lidar_center_x, move_lidar_center_y=move_lidar_center_y)
         print_str = f"Frame id: {frame}. Prediction results: \n"
         for i in range(len(pred_dict['name'])):
             print_str += f"Type: {pred_dict['name'][i]:.3s} Prob: {scores[i]:.2f}\n"
@@ -216,21 +217,37 @@ class Processor_ROS:
         timestamps = np.empty((len(self.points),1))
         timestamps[:] = frame
 
-        # def roty(t):
-        #     """ Rotation about the y-axis. """
-        #     c = np.cos(t)
-        #     s = np.sin(t)
-        #     return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
+        def roty(t):
+            """ Rotation about the y-axis. """
+            c = np.cos(t)
+            s = np.sin(t)
+            return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
         
-        # r = roty(np.deg2rad(0))
+        ry = roty(np.deg2rad(-5))
 
-        # self.points[:,0:3] = self.points[:,0:3] @ r
-        # msg = xyz_array_to_pointcloud2(self.points)
-        # self.pub_pts.publish(msg)
-        
-        self.points[:,0] += move_lidar_center
+        def rotx(t):
+            """ Rotation about the x-axis. """
+            c = np.cos(t)
+            s = np.sin(t)
+            return np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
+        rx = rotx(np.deg2rad(0.9))
+
+        def rotyz(t):
+            """ Rotation about the z-axis. """
+            c = np.cos(t)
+            s = np.sin(t)
+            return np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
+        rz = rotyz(np.deg2rad(5))
+
+        self.points[:,0:3] = self.points[:,0:3] @ ry @ rx @ rz
+
+        self.points[:,0] += move_lidar_center_x
+        self.points[:,1] += move_lidar_center_y
         self.points[:,2] += height_addtion
         self.points[:,3] = self.points[:,3] / 255.0
+
+        msg = xyz_array_to_pointcloud2(self.points)
+        self.pub_pts.publish(msg)
 
         input_dict = {
             'points': self.points,
