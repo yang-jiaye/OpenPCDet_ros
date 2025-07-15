@@ -1,4 +1,7 @@
 <launch>
+    <!-- Load parameters from config.yaml -->
+    <rosparam file="$(find openpcdet)/launch/config.yaml" command="load" ns="object_3d_detector_node"/>
+    
     <node pkg="openpcdet" type="inference.py" name="object_3d_detector_node" output="screen"/>
 
     <!-- Load Parameter -->

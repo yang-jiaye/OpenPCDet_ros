@@ -10,6 +10,7 @@ project(openpcdet)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
+  v2x_msgs
   std_msgs
   visualization_msgs
 )

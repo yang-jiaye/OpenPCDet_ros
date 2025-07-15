@@ -16,7 +16,24 @@ threshold: 0.8
 
 # move the lidar center to the front of the car
 # if the lidar is in the center of the car, set it to 0
-move_lidar_center_x: -30
-move_lidar_center_y: 3
-# height_addtion: 0.5
+move_lidar_center_x: 0
+move_lidar_center_y: 0
+height_addtion: 0.5
+
+rx: 0.0
+ry: 0.0
+rz: 0.0
+
+logitude: 110.510565795
+latitude: 19.959623542
+height_global: 17.13
+yaw: 45.30
+
+x_m: 20
+y_m: -5
+z_m: -1
+
+y_min: -10
+y_max: 5
+
 viz_rate: 1.0
